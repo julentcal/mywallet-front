@@ -46,6 +46,10 @@ function formatDate(value) {
         : '—';
 }
 
+function showLoginError(message) {
+    alert(message);
+}
+
 let usuarioActual = null;
 let authToken = null;
 
@@ -84,10 +88,18 @@ async function ensureSeedData() {
 }
 
 async function loginDemo(email, password) {
+    if (window.location.protocol === 'file:') {
+        throw new Error('Abre la app con un servidor (npm run dev) para usar users.json');
+    }
     const res = await fetch('/users.json');
     if (!res.ok) throw new Error('No se pudo cargar users.json');
     const users = await res.json();
-    const user = users.find((u) => u.email === email && u.password === password);
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const normalizedPassword = String(password).trim();
+    const user = users.find((u) =>
+        String(u.email).trim().toLowerCase() === normalizedEmail &&
+        String(u.password).trim() === normalizedPassword
+    );
     if (!user) throw new Error('Credenciales inválidas');
     return { user, token: 'demo-token' };
 }
@@ -163,7 +175,7 @@ loginForm.addEventListener('submit', async (e) => {
         mostrarApp();
 
     } catch (error) {
-        alert('Error: credenciales inválidas');
+        showLoginError(error?.message || 'Error: credenciales inválidas');
     }
 });
 
