@@ -325,7 +325,7 @@ function renderizarLista(movimientos) {
         let infoExtra = '';
         let claseExtra = '';
 
-        if (mov.user_id != usuarioActual.id) {
+        if (mov.user_id != usuarioActual.id && mov.pagado_por) {
             infoExtra = `<small style="color: #e67e22;">Pagado por: ${mov.pagado_por}</small>`;
             claseExtra = 'border-left: 4px solid #e67e22;';
         } 
