@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyWallet Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat+Alternates:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="main.js" defer></script>
+</head>
+<body>
+
+    <div class="main-container">
+
+        <section id="login-view" class="action-panel">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h2>Bienvenido a MyWallet</h2>
+                <p>Inicia sesión para ver tus gastos</p>
+            </div>
+            <form id="loginForm">
+                <div class="input-group">
+                    <input type="email" id="emailInput" placeholder=" " required>
+                    <label>Email</label>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="passwordInput" placeholder=" " required>
+                    <label>Contraseña</label>
+                </div>
+                <button type="submit" class="btn-primary">Entrar</button>
+            </form>
+            
+        </section>
+
+        <div id="app-view" class="hidden">
+            <header>
+                <div class="header-top">
+                    <div class="brand-block">
+                        <div class="logo">MyWallet</div>
+                        <div class="user-greeting" id="userNameDisplay"></div>
+                    </div>
+                    <div class="header-actions">
+                        <button id="themeToggle" class="ghost-btn" type="button">🌙</button>
+                        <button id="logoutBtn" class="ghost-btn" type="button">Cerrar sesión</button>
+                    </div>
+                </div>
+                
+                <div class="credit-card" id="balanceCard">
+                    <div class="card-details">
+                        <span class="card-label">Saldo Total</span>
+                        <h2 id="totalBalance">0.00 €</h2>
+                    </div>
+                </div>
+            </header>
+
+            <section class="summary-panel">
+                <div class="summary-header">
+                    <h3>Resumen mensual</h3>
+                    <span id="summaryMonth" class="summary-month"></span>
+                </div>
+                <div class="summary-grid">
+                    <div class="summary-card income">
+                        <span class="summary-label">Ingresos</span>
+                        <strong id="monthlyIncome">0.00 €</strong>
+                    </div>
+                    <div class="summary-card expense">
+                        <span class="summary-label">Gastos</span>
+                        <strong id="monthlyExpense">0.00 €</strong>
+                    </div>
+                    <div class="summary-card balance">
+                        <span class="summary-label">Balance</span>
+                        <strong id="monthlyBalance">0.00 €</strong>
+                    </div>
+                </div>
+            </section>
+
+            <section class="action-panel">
+                <h3>Nueva Transacción</h3>
+                <form id="transactionForm">
+                     <div class="input-group">
+                        <input type="text" id="concepto" placeholder=" " required autocomplete="off">
+                        <label>Concepto</label>
+                    </div>
+                    <div class="row">
+                        <div class="input-group">
+                            <input type="number" id="monto" placeholder=" " step="0.01" required>
+                            <label>Precio (€)</label>
+                        </div>
+                        <div class="select-group">
+                            <select id="tipo">
+                                <option value="gasto">Gasto</option>
+                                <option value="ingreso">Ingreso</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="input-group" style="margin-top: 10px;">
+                        <input type="email" id="friendEmail" placeholder=" " autocomplete="off">
+                        <label>Compartir con</label>
+                    </div>
+                    <button type="submit" class="btn-primary">Añadir</button>
+                </form>
+            </section>
+
+            <section class="history-panel">
+                <h3>Historial</h3>
+                <ul id="transactionList" class="transaction-list"></ul>
+            </section>
+        </div>
+
+    </div>
+
+</body>
+</html>
