@@ -1,0 +1,23 @@
+[
+  {
+    "id": "seed-1",
+    "concept": "Café",
+    "amount": 2.5,
+    "type": "gasto",
+    "date": "2026-02-02T09:15:00.000Z"
+  },
+  {
+    "id": "seed-2",
+    "concept": "Sueldo",
+    "amount": 1600,
+    "type": "ingreso",
+    "date": "2026-02-01T08:00:00.000Z"
+  },
+  {
+    "id": "seed-3",
+    "concept": "Supermercado",
+    "amount": 45.8,
+    "type": "gasto",
+    "date": "2026-02-03T18:20:00.000Z"
+  }
+]

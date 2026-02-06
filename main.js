@@ -1,4 +1,5 @@
 const API_URL = 'http://localhost:3000/api/wallet';
+const USE_DEMO_AUTH = true;
 
 const loginView = document.getElementById('login-view');
 const appView = document.getElementById('app-view');
@@ -48,6 +49,49 @@ function formatDate(value) {
 let usuarioActual = null;
 let authToken = null;
 
+function getStorageKey() {
+    return usuarioActual?.id ? `mywallet_tx_${usuarioActual.id}` : 'mywallet_tx_guest';
+}
+
+function getLocalMovements() {
+    const raw = localStorage.getItem(getStorageKey());
+    return raw ? JSON.parse(raw) : [];
+}
+
+function saveLocalMovements(movimientos) {
+    localStorage.setItem(getStorageKey(), JSON.stringify(movimientos));
+}
+
+async function ensureSeedData() {
+    if (!usuarioActual) return;
+    if (getLocalMovements().length > 0) return;
+    try {
+        const res = await fetch('/seed.json');
+        if (!res.ok) return;
+        const seed = await res.json();
+        const now = new Date().toISOString();
+        const seeded = seed.map((mov, index) => ({
+            id: mov.id ?? `seed-${index}`,
+            concept: mov.concept,
+            amount: mov.amount,
+            type: mov.type,
+            date: mov.date || now
+        }));
+        saveLocalMovements(seeded);
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+async function loginDemo(email, password) {
+    const res = await fetch('/users.json');
+    if (!res.ok) throw new Error('No se pudo cargar users.json');
+    const users = await res.json();
+    const user = users.find((u) => u.email === email && u.password === password);
+    if (!user) throw new Error('Credenciales inválidas');
+    return { user, token: 'demo-token' };
+}
+
 function iniciarApp() {
     const temaGuardado = localStorage.getItem('mywallet_theme');
     if (temaGuardado === 'dark') {
@@ -88,18 +132,27 @@ loginForm.addEventListener('submit', async (e) => {
     const password = passwordInput.value;
 
     try {
-        const res = await fetch(`${API_URL}/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-        });
+        let user;
+        let token;
 
-        if (!res.ok) throw new Error('Usuario no encontrado');
+        if (USE_DEMO_AUTH) {
+            const data = await loginDemo(email, password);
+            user = data.user;
+            token = data.token;
+        } else {
+            const res = await fetch(`${API_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
 
-        const data = await res.json();
-        const user = data.user || data.usuario || data;
-        const token = data.token || data.accessToken || data.jwt;
-        if (!token) throw new Error('Token no recibido');
+            if (!res.ok) throw new Error('Usuario no encontrado');
+
+            const data = await res.json();
+            user = data.user || data.usuario || data;
+            token = data.token || data.accessToken || data.jwt;
+            if (!token) throw new Error('Token no recibido');
+        }
         
         localStorage.setItem('mywallet_user', JSON.stringify(user));
         if (token) {
@@ -134,17 +187,29 @@ async function cargarMovimientos() {
             mostrarLogin();
             return;
         }
-        const res = await fetch(API_URL, {
-            headers: { 
-                'user-id': usuarioActual.id,
-                Authorization: `Bearer ${authToken}`
-            }
-        });
-        const data = await res.json();
-        renderizarLista(data);
-        actualizarBalance(data);
+        await ensureSeedData();
+        if (USE_DEMO_AUTH) {
+            const localData = getLocalMovements();
+            renderizarLista(localData);
+            actualizarBalance(localData);
+        } else {
+            const res = await fetch(API_URL, {
+                headers: { 
+                    'user-id': usuarioActual.id,
+                    Authorization: `Bearer ${authToken}`
+                }
+            });
+            if (!res.ok) throw new Error('Error al cargar movimientos');
+            const data = await res.json();
+            saveLocalMovements(data);
+            renderizarLista(data);
+            actualizarBalance(data);
+        }
     } catch (error) {
         console.error(error);
+        const localData = getLocalMovements();
+        renderizarLista(localData);
+        actualizarBalance(localData);
     }
 }
 
@@ -161,37 +226,81 @@ transactionForm.addEventListener('submit', async (e) => {
     };
 
     try {
-        await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'user-id': usuarioActual.id,
-                Authorization: `Bearer ${authToken}`
-            },
-            body: JSON.stringify(nuevaTransaccion)
-        });
+        if (USE_DEMO_AUTH) {
+            const localData = getLocalMovements();
+            const localEntry = {
+                id: (crypto?.randomUUID && crypto.randomUUID()) || `local-${Date.now()}`,
+                concept: nuevaTransaccion.concepto,
+                amount: nuevaTransaccion.monto,
+                type: nuevaTransaccion.tipo,
+                date: new Date().toISOString()
+            };
+            const updated = [...localData, localEntry];
+            saveLocalMovements(updated);
+            renderizarLista(updated);
+            actualizarBalance(updated);
+        } else {
+            await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'user-id': usuarioActual.id,
+                    Authorization: `Bearer ${authToken}`
+                },
+                body: JSON.stringify(nuevaTransaccion)
+            });
+            cargarMovimientos();
+        }
 
         conceptoInput.value = '';
         montoInput.value = '';
         document.getElementById('friendEmail').value = '';
-        cargarMovimientos();
     } catch (error) {
         console.error(error);
+        if (!USE_DEMO_AUTH) {
+            const localData = getLocalMovements();
+            const localEntry = {
+                id: (crypto?.randomUUID && crypto.randomUUID()) || `local-${Date.now()}`,
+                concept: nuevaTransaccion.concepto,
+                amount: nuevaTransaccion.monto,
+                type: nuevaTransaccion.tipo,
+                date: new Date().toISOString()
+            };
+            const updated = [...localData, localEntry];
+            saveLocalMovements(updated);
+            renderizarLista(updated);
+            actualizarBalance(updated);
+        }
     }
 });
 
 window.borrarMovimiento = async (id) => {
     if(!confirm('¿Borrar?')) return;
     try {
-        await fetch(`${API_URL}/${id}`, { 
-            method: 'DELETE',
-            headers: { 
-                'user-id': usuarioActual.id,
-                Authorization: `Bearer ${authToken}`
-            }
-        });
-        cargarMovimientos();
-    } catch (error) { console.error(error); }
+        if (USE_DEMO_AUTH) {
+            const localData = getLocalMovements().filter((mov) => mov.id !== id);
+            saveLocalMovements(localData);
+            renderizarLista(localData);
+            actualizarBalance(localData);
+        } else {
+            await fetch(`${API_URL}/${id}`, { 
+                method: 'DELETE',
+                headers: { 
+                    'user-id': usuarioActual.id,
+                    Authorization: `Bearer ${authToken}`
+                }
+            });
+            cargarMovimientos();
+        }
+    } catch (error) {
+        console.error(error);
+        if (!USE_DEMO_AUTH) {
+            const localData = getLocalMovements().filter((mov) => mov.id !== id);
+            saveLocalMovements(localData);
+            renderizarLista(localData);
+            actualizarBalance(localData);
+        }
+    }
 };
 
 function renderizarLista(movimientos) {
